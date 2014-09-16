@@ -1,22 +1,14 @@
 package org.conan.myhadoop.mr.kpi;
 
-import java.io.IOException;
-import java.util.Iterator;
-
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.FileOutputFormat;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.util.GenericOptionsParser;
+
+import java.io.IOException;
+import java.util.Iterator;
 
 public class KPIBrowser {
 
@@ -49,9 +41,16 @@ public class KPIBrowser {
     }
 
     public static void main(String[] args) throws Exception {
-        String input = "hdfs://192.168.1.210:9000/user/hdfs/log_kpi";
-        String output = "hdfs://192.168.1.210:9000/user/hdfs/log_kpi/browser";
+        Configuration _conf = new Configuration();
+        String otherArgs[] = (new GenericOptionsParser(_conf, args)).getRemainingArgs();
+        if (otherArgs.length != 2)
+        {
+            System.err.println("Usage: org.conan.myhadoop.mr.kpi.KPIBrowser <in> <out>");
+            System.exit(2);
+        }
 
+        String input = otherArgs[0];
+        String output = otherArgs[1] ;
         JobConf conf = new JobConf(KPIBrowser.class);
         conf.setJobName("KPIBrowser");
         conf.addResource("classpath:/hadoop/core-site.xml");

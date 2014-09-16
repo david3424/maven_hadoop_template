@@ -19,28 +19,39 @@ public class KPI {
     private String body_bytes_sent;// 记录发送给客户端文件主体内容大小
     private String http_referer;// 用来记录从那个页面链接访问过来的
     private String http_user_agent;// 记录客户浏览器的相关信息
+    private String client_type;// 记录客户的客户端使用系统信息
+
+    public String getClient_type() {
+        return client_type;
+    }
+
+    public void setClient_type(String client_type) {
+        this.client_type = client_type;
+    }
 
     private boolean valid = true;// 判断数据是否合法
 
     private static KPI parser(String line) {
-        System.out.println(line);
         KPI kpi = new KPI();
+        System.out.println(line);
         String[] arr = line.split(" ");
-        if (arr.length > 11) {
+        if (arr.length == 10) {
             kpi.setRemote_addr(arr[0]);
-            kpi.setRemote_user(arr[1]);
-            kpi.setTime_local(arr[3].substring(1));
-            kpi.setRequest(arr[6]);
+            kpi.setTime_local(arr[1].substring(1));
+//        kpi.setRequest(arr[5]);
+            kpi.setHttp_referer(arr[5]);
             kpi.setStatus(arr[8]);
-            kpi.setBody_bytes_sent(arr[9]);
-            kpi.setHttp_referer(arr[10]);
-            
-            if (arr.length > 12) {
-                kpi.setHttp_user_agent(arr[11] + " " + arr[12]);
-            } else {
-                kpi.setHttp_user_agent(arr[11]);
+            kpi.setRequest(arr[9]);
+            String request = kpi.getHttp_referer();
+            String[] rre = request.split("&");
+            try {
+                kpi.setHttp_user_agent(rre[0].substring(rre[0].indexOf("=")+1));
+                kpi.setClient_type(rre[1].substring(rre[1].indexOf("=")+1));
+                kpi.setHttp_referer(rre[2].substring(rre[2].indexOf("=")+1));
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("======error line is =======" + line);
             }
-
             if (Integer.parseInt(kpi.getStatus()) >= 400) {// 大于400，HTTP错误
                 kpi.setValid(false);
             }
@@ -56,15 +67,17 @@ public class KPI {
     public static KPI filterPVs(String line) {
         KPI kpi = parser(line);
         Set<String> pages = new HashSet<String>();
-        pages.add("/about");
+       /* pages.add("/about");
         pages.add("/black-ip-list/");
         pages.add("/cassandra-clustor/");
         pages.add("/finance-rhive-repurchase/");
         pages.add("/hadoop-family-roadmap/");
         pages.add("/hadoop-hive-intro/");
         pages.add("/hadoop-zookeeper-intro/");
-        pages.add("/hadoop-mahout-roadmap/");
-
+        pages.add("/hadoop-mahout-roadmap/");*/
+//        pages.add("event.dota2.com.cn/");
+//        pages.add("event.173.com");
+        pages.add("http://event.");
         if (!pages.contains(kpi.getRequest())) {
             kpi.setValid(false);
         }
@@ -77,15 +90,15 @@ public class KPI {
     public static KPI filterIPs(String line) {
         KPI kpi = parser(line);
         Set<String> pages = new HashSet<String>();
-        pages.add("/about");
+      /*  pages.add("/about");
         pages.add("/black-ip-list/");
         pages.add("/cassandra-clustor/");
         pages.add("/finance-rhive-repurchase/");
         pages.add("/hadoop-family-roadmap/");
         pages.add("/hadoop-hive-intro/");
         pages.add("/hadoop-zookeeper-intro/");
-        pages.add("/hadoop-mahout-roadmap/");
-
+        pages.add("/hadoop-mahout-roadmap/");*/
+        pages.add("http://event.");
         if (!pages.contains(kpi.getRequest())) {
             kpi.setValid(false);
         }
@@ -117,15 +130,17 @@ public class KPI {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("valid:" + this.valid);
-        sb.append("\nremote_addr:" + this.remote_addr);
-        sb.append("\nremote_user:" + this.remote_user);
-        sb.append("\ntime_local:" + this.time_local);
-        sb.append("\nrequest:" + this.request);
-        sb.append("\nstatus:" + this.status);
-        sb.append("\nbody_bytes_sent:" + this.body_bytes_sent);
-        sb.append("\nhttp_referer:" + this.http_referer);
-        sb.append("\nhttp_user_agent:" + this.http_user_agent);
+        sb.append("valid:").append(this.valid);
+        sb.append("\nremote_addr:").append(this.remote_addr);
+        sb.append("\nremote_user:").append(this.remote_user);
+        sb.append("\ntime_local:").append(this.time_local);
+        sb.append("\nrequest:").append(this.request);
+        sb.append("\nstatus:").append(this.status);
+        sb.append("\nbody_bytes_sent:").append(this.body_bytes_sent);
+        sb.append("\nhttp_referer:").append(this.http_referer);
+        sb.append("\nhttp_user_agent:").append(this.http_user_agent);
+        sb.append("\nhttp_referer_domain:").append(this.getHttp_referer_domain());
+        sb.append("\nclient_type:").append(this.client_type);
         return sb.toString();
     }
 
@@ -221,7 +236,7 @@ public class KPI {
     }
 
     public static void main(String args[]) {
-        String line = "222.68.172.190 - - [18/Sep/2013:06:49:57 +0000] \"GET /images/my.jpg HTTP/1.1\" 200 19939 \"http://www.angularjs.cn/A00n\" \"Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.66 Safari/537.36\"";
+        /*String line = "222.68.172.190 - - [18/Sep/2013:06:49:57 +0000] \"GET /images/my.jpg HTTP/1.1\" 200 19939 \"http://www.angularjs.cn/A00n\" \"Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.66 Safari/537.36\"";
         System.out.println(line);
         KPI kpi = new KPI();
         String[] arr = line.split(" ");
@@ -243,7 +258,35 @@ public class KPI {
             System.out.println(kpi.getHttp_referer_domain());
         } catch (ParseException e) {
             e.printStackTrace();
+        }*/
+
+        String line = "\"202.101.138.131\" [16/Sep/2014:13:42:55 +0800]  \"GET /__bb.gif?browserType=chrome&clientType=Windows7&referrer=http://event.dota2.com.cn/dota2/scoremall/gainscore&t=1410846339965 HTTP/1.0\"  200 \"http://event.dota2.com.cn/dota2/scoremall/myexchange\"";
+//        String line = "\"175.151.220.79, 123.150.182.186\" [16/Sep/2014:15:03:43 +0800]  \"GET /__bb.gif?browserType=safari&clientType=Android4.4.2&referrer=http://www.dota2.com.cn/main.htm&t=1410851197945 HTTP/1.0\"  200 \"http://event.dota2.com.cn/dota2/scoremall/index\" ";
+        System.out.println(line);
+        KPI kpi = new KPI();
+        String[] arr = line.split(" ");
+        System.out.println("================================"+arr.length);
+        kpi.setRemote_addr(arr[0]);
+        kpi.setTime_local(arr[1].substring(1));
+//        kpi.setRequest(arr[5]);
+        kpi.setHttp_referer(arr[5]);
+        kpi.setStatus(arr[8]);
+        kpi.setRequest(arr[9]);
+        String request = kpi.getHttp_referer();
+        String[] rre = request.split("&");
+        kpi.setHttp_user_agent(rre[0].substring(rre[0].indexOf("=")+1));
+        kpi.setClient_type(rre[1].substring(rre[1].indexOf("=")+1));
+        kpi.setHttp_referer(rre[2].substring(rre[2].indexOf("=")+1));
+        System.out.println(kpi);
+        try {
+            SimpleDateFormat df = new SimpleDateFormat("yyyy.MM.dd:HH:mm:ss", Locale.US);
+            System.out.println(df.format(kpi.getTime_local_Date()));
+            System.out.println(kpi.getTime_local_Date_hour());
+            System.out.println(kpi.getHttp_referer_domain());
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
+
     }
 
 }

@@ -2,16 +2,13 @@
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 
 <configuration>
-  <property>
-    <name>fs.default.name</name>
-    <value>hdfs://master:9000</value>
-  </property>
-  <property>
-    <name>hadoop.tmp.dir</name>
-    <value>/home/conan/hadoop/tmp</value>
-  </property>
-  <property>
-    <name>io.sort.mb</name>
-    <value>1024</value>
-  </property>
+    <property>
+        <name>fs.default.name</name>
+        <value>hdfs://master:49000</value>
+    </property>
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>/home/hadoop/hadoop-1.2.1/var</value>
+    </property>
 </configuration>
+

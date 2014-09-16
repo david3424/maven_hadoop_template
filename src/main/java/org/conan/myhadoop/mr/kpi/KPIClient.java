@@ -10,9 +10,9 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class KPIPV { 
+public class KPIClient { 
 
-    public static class KPIPVMapper extends MapReduceBase implements Mapper<Object, Text, Text, IntWritable> {
+    public static class KPIClientMapper extends MapReduceBase implements Mapper<Object, Text, Text, IntWritable> {
         private IntWritable one = new IntWritable(1);
         private Text word = new Text();
 
@@ -20,13 +20,13 @@ public class KPIPV {
         public void map(Object key, Text value, OutputCollector<Text, IntWritable> output, Reporter reporter) throws IOException {
             KPI kpi = KPI.filterBroswer(value.toString());
             if (kpi.isValid()) {
-                word.set(kpi.getRequest());
+                word.set(kpi.getClient_type());
                 output.collect(word, one);
             }
         }
     }
 
-    public static class KPIPVReducer extends MapReduceBase implements Reducer<Text, IntWritable, Text, IntWritable> {
+    public static class KPIClientReducer extends MapReduceBase implements Reducer<Text, IntWritable, Text, IntWritable> {
         private IntWritable result = new IntWritable();
 
         @Override
@@ -49,15 +49,15 @@ public class KPIPV {
         String otherArgs[] = (new GenericOptionsParser(conf, args)).getRemainingArgs();
         if (otherArgs.length != 2)
         {
-            System.err.println("Usage: org.conan.myhadoop.mr.kpiKPIPV <in> <out>");
+            System.err.println("Usage: org.conan.myhadoop.mr.kpiKPIClient <in> <out>");
             System.exit(2);
         }
 
         String input = otherArgs[0];
         String output = otherArgs[1] ;
 
-        JobConf job = new JobConf(KPIPV.class);
-        job.setJobName("KPIPV");
+        JobConf job = new JobConf(KPIClient.class);
+        job.setJobName("KPIClient");
         job.addResource("classpath:/hadoop/core-site.xml");
         job.addResource("classpath:/hadoop/hdfs-site.xml");
         job.addResource("classpath:/hadoop/mapred-site.xml");
@@ -68,9 +68,9 @@ public class KPIPV {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
 
-        job.setMapperClass(KPIPVMapper.class);
-        job.setCombinerClass(KPIPVReducer.class);
-        job.setReducerClass(KPIPVReducer.class);
+        job.setMapperClass(KPIClientMapper.class);
+        job.setCombinerClass(KPIClientReducer.class);
+        job.setReducerClass(KPIClientReducer.class);
 
         job.setInputFormat(TextInputFormat.class);
         job.setOutputFormat(TextOutputFormat.class);

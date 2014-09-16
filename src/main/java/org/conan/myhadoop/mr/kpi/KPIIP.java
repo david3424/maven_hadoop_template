@@ -1,23 +1,15 @@
 package org.conan.myhadoop.mr.kpi;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.util.GenericOptionsParser;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.FileOutputFormat;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.mapred.TextOutputFormat;
 
 public class KPIIP {
 
@@ -27,9 +19,9 @@ public class KPIIP {
 
         @Override
         public void map(Object key, Text value, OutputCollector<Text, Text> output, Reporter reporter) throws IOException {
-            KPI kpi = KPI.filterIPs(value.toString());
+            KPI kpi = KPI.filterBroswer(value.toString());
             if (kpi.isValid()) {
-                word.set(kpi.getRequest());
+                word.set(kpi.getRemote_addr());
                 ips.set(kpi.getRemote_addr());
                 output.collect(word, ips);
             }
@@ -51,9 +43,16 @@ public class KPIIP {
     }
 
     public static void main(String[] args) throws Exception {
-        String input = "hdfs://192.168.1.210:9000/user/hdfs/log_kpi/";
-        String output = "hdfs://192.168.1.210:9000/user/hdfs/log_kpi/ip";
+        Configuration _conf = new Configuration();
+        String otherArgs[] = (new GenericOptionsParser(_conf, args)).getRemainingArgs();
+        if (otherArgs.length != 2)
+        {
+            System.err.println("Usage: org.conan.myhadoop.mr.kpi.KPIIP <in> <out>");
+            System.exit(2);
+        }
 
+        String input = otherArgs[0];
+        String output = otherArgs[1] ;
         JobConf conf = new JobConf(KPIIP.class);
         conf.setJobName("KPIIP");
         conf.addResource("classpath:/hadoop/core-site.xml");
