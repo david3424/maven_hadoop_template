@@ -1,6 +1,9 @@
 package org.conan.myhadoop.mr.kpi;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -32,6 +35,7 @@ public class KPIBrowser {
         @Override
         protected void setup(Context context) throws IOException,
                 InterruptedException {
+            parameterBean = new ParameterBean();
             // 读取块,取得当前正在处理的log文件的名称
             InputSplit inputSplit = context.getInputSplit();
             String logFilePathAndName = ((FileSplit) inputSplit).getPath()
@@ -93,8 +97,6 @@ public class KPIBrowser {
             System.err.println("Usage: org.conan.myhadoop.mr.kpi.KPIBrowser <in> <out>");
             System.exit(2);
         }
-
-        String input = otherArgs[0];
         String output = otherArgs[1];
         Job job = new Job(_conf, "KPIBrowser");
         job.setJarByClass(KPIBrowser.class);
@@ -104,10 +106,30 @@ public class KPIBrowser {
         job.setOutputKeyClass(Text.class);
         job.setMapOutputValueClass(IntWritable.class);
         job.setJobName("KPIBrowser");
+        // hadoop 文件路径
+        FileSystem hdfs = FileSystem.get(_conf);
+        // 多文件路径按逗号分隔
+        String input[] = otherArgs[0].trim().split(",");
+
+        // 如果切割开了，如果有多个输入文件
+        if (input.length > 1) {
+            // 循环通配符路径
+            for (String anInput : input) {
+                Path path = new Path(anInput.trim());
+                FileStatus[] status = hdfs.globStatus(path);
+                Path[] listedPaths = FileUtil.stat2Paths(status);
+                // 循环加入完整路径
+                for (Path p : listedPaths) {
+                    FileInputFormat.addInputPath(job, p);
+                }
+            }
+        } else {
+            FileInputFormat.addInputPath(job, new Path(otherArgs[0].trim()));
+        }
       /*  conf.addResource("classpath:/hadoop/core-site.xml");
         conf.addResource("classpath:/hadoop/hdfs-site.xml");
         conf.addResource("classpath:/hadoop/mapred-site.xml");*/
-        FileInputFormat.setInputPaths(job, new Path(input));
+//        FileInputFormat.setInputPaths(job, new Path(input));
         FileOutputFormat.setOutputPath(job, new Path(output));
 
 //        JobClient.runJob(conf);
