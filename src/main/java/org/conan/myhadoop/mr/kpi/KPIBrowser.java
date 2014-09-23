@@ -4,39 +4,85 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.conan.myhadoop.mr.common.ETLUnit;
+import org.conan.myhadoop.mr.common.ParameterBean;
 
 import java.io.IOException;
 
+/**
+ * 新api方式计算
+ */
 public class KPIBrowser {
+
 
     public static class KPIBrowserMapper extends Mapper<Object, Text, Text, IntWritable> {
         private IntWritable one = new IntWritable(1);
         private Text word = new Text();
+        ParameterBean parameterBean = null;// 用来存放etl解析器的参数
+
+        @Override
+        protected void setup(Context context) throws IOException,
+                InterruptedException {
+            // 读取块,取得当前正在处理的log文件的名称
+            InputSplit inputSplit = context.getInputSplit();
+            String logFilePathAndName = ((FileSplit) inputSplit).getPath()
+                    .toString();
+            parameterBean.setLogFilePathAndName(logFilePathAndName);
+            String day = ETLUnit.getKPILogFileDayFromPath(logFilePathAndName);
+            parameterBean.setDay(day);
+            String hour = ETLUnit.getKPILogFileHourFromPath(logFilePathAndName);
+            parameterBean.setHour(hour);
+            System.out.println("============logFilePathAndName is :" + logFilePathAndName);
+            System.out.println("============day is :" +day);
+            System.out.println("============hour is :" +hour);
+        }
 
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             KPI kpi = KPI.filterBroswer(value.toString());
             if (kpi.isValid()) {
-                word.set(kpi.getHttp_user_agent());
+                word.set(kpi.getHttp_user_agent()+"@"+parameterBean.getDay()+"/"+parameterBean.getHour());
                 context.write(word, one);
             }
         }
     }
 
     public static class KPIBrowserReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        private MultipleOutputs<Text, IntWritable> mos;
+
+        @Override
+        protected void setup(Context context) throws IOException,
+                InterruptedException {
+            mos = new MultipleOutputs<Text, IntWritable>(context);
+        }
 
         @Override
         public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
             int sum = 0;
+            String tmp[] = key.toString().split("@");
+            String content = tmp[0];
+            String fileOutPathAndName = tmp[1];
             for (IntWritable val : values) {
                 sum += val.get();
             }
-            context.write(key, new IntWritable(sum));
+            if (null != content && content.trim().length() > 0 && null != fileOutPathAndName && fileOutPathAndName.trim().length() > 0) {
+                key.set(content);
+                // 输出
+                mos.write(key, new IntWritable(sum), fileOutPathAndName);
+            }
+        }
+        @Override
+        protected void cleanup(Context context) throws IOException,
+                InterruptedException {
+            mos.close();
         }
     }
 
